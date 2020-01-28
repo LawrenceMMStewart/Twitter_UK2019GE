@@ -3,6 +3,14 @@ import json
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from dateutil.parser import parse
 from processing import * 
+import sys
+
+#a loading bar printing class:
+class Printer():
+    """Print things to stdout on one line dynamically"""
+    def __init__(self,data):
+        sys.stdout.write("\r\x1b[K"+data.__str__())
+        sys.stdout.flush()
 
 
 ###################################################
@@ -30,7 +38,7 @@ class TweetDayFrame():
         self.keywords=[]
         self.keywords.append("Brexit")
         self.keywords.append('Boris Johnson')
-        self.keywords.append('Jeremey Corbyn')
+        self.keywords.append('Jeremy Corbyn') #streaming error
         self.keywords.append('Jo Swinson')
         self.keywords.append('Nigel Farage')
         self.keywords.append('Conservative party')
@@ -112,46 +120,74 @@ class TweetDayFrame():
         return scores['compound']
 
 
-
     def analyse_tweet(self,tweet):
         """
         Analyses a tweet and updates the statistics 
         of the corresponding day
         """
-        #extract date
-        dat=date_extract(tweet)
-        #find type of tweet
-        tw_typ=tweet_type(tweet)
-        #extract text of tweet
-        text=tweet_text(tweet,tw_typ)
+        try:
+            #extract date
+            dat=date_extract(tweet)
+            #find type of tweet
+            tw_typ=tweet_type(tweet)
+            #extract text of tweet
+            text=tweet_text(tweet,tw_typ)
 
-        #find the keys of tweet:
-        kys=self.whichkeys(text)
+            #find the keys of tweet:
+            kys=self.whichkeys(text)
 
-        if dat not in self.dates.keys():
-            self.new_date(dat)
+            #remove blank tweets and tweets that have lost their date:
+            flag= (dat!=None) and (text!=None)
 
-        for key in kys:
-            #sentiment of tweet
-            s=self.sent(text)
-            self.update_stats(dat,key,s)
-
-    
-
-
+            #for a tweet satisfying the above
+            if flag:
+                #new date considered
+                if dat not in self.dates.keys():
+                    self.new_date(dat)
+                #update information
+                for key in kys:
+                    #sentiment of tweet
+                    s=self.sent(text)
+                    self.update_stats(dat,key,s)
+        except:
+            return None
 
 
 
 if __name__=="__main__":
 
-
-
-    #uncompress selected raw sample
-    raw_sample=GetTweets(5000)
-    sample=Bytes_to_Json(raw_sample)
-
+    #create data structure
     A=TweetDayFrame()
 
-    for x in sample:
-        A.analyse_tweet(x)
-    breakpoint()
+    # #calculate number of lines in file: 
+    # with gzip.open("tweets.json", 'rb') as f:
+    #     for i, l in enumerate(f):
+    #         if i%10000==0:
+    #             message="counted %i lines "%i
+    #             Printer(message)
+    # print("File contains %i lines"%i)
+    # no_lines=i
+
+    # roughly 14million tweets 1mb > -approx 1000 tweets
+    # multithreading programming
+
+    it=0
+    with gzip.open('tweets.json', 'rb') as f:
+        for byte_tweet in f:
+            it+=1
+            # message="Iteration %i/ %i"%(it,no_lines)
+            message="Iteration %i"%it
+            Printer(message)
+            tweet=Bytes_to_Json([byte_tweet])[0]
+            A.analyse_tweet(tweet)
+    
+    for key in A.dates.keys():
+        print(key)
+        print(A.dates[key])
+
+
+    save_obj(A.dates, "dict" )
+
+
+
+#add try catch on analyse -- with 4 cores roughly < hour 

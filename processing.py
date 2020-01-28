@@ -69,9 +69,17 @@ def date_extract(tweet):
 	"""
 	Extracts the date of the tweet:
 	"""
-	dt=parse(tweet['created_at'])
-	return dt.date()
+	if 'created_at' in tweet.keys():
+		dt=parse(tweet['created_at'])
+		return dt.date()
+	else:
+		return None
 
+def string_to_date(dat_str):
+	"""
+	Converts date string (Year, Month, Day) to datetime object
+	"""
+	return dateutil.parser.parse(dat_str).date
 
 def tweet_type(tweet):
 	"""
@@ -97,7 +105,10 @@ def tweet_text(tweet,category):
 	"""
 	#plain tweet
 	if category==0:
-		return tweet['text']
+		if 'text' in tweet.keys():
+			return tweet['text']
+		else:
+			return None
 	#extended tweet
 	elif category==1:
 		return tweet['extended_tweet']['full_text']
@@ -112,7 +123,19 @@ def tweet_text(tweet,category):
 		sub_lab=tweet_type(sub_tw)
 		return tweet_text(sub_tw,sub_lab)
 
-#examples of some utils being used
+def save_obj(obj, name ):
+	"""
+	Save a dictionary 
+	"""
+    with open(name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name):
+	"""
+	load a dictionary 
+	"""
+    with open(name + '.pkl', 'rb') as f:
+        return pickle.load(f)
 
 if __name__=="__main__":
 
@@ -133,7 +156,7 @@ if __name__=="__main__":
 	texts=list(map(tweet_text,sample,tw_types))
 	sentiments=list(map(sid.polarity_scores,texts))
 	dates=list(map(lambda x: x['created_at'],sample))
-	breakpoint()
+	# breakpoint()
 
 	# for i in range(10):
 	# 	print(texts[i+20])
