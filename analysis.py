@@ -4,6 +4,7 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from dateutil.parser import parse
 from processing import * 
 import sys
+import pickle
 
 #a loading bar printing class:
 class Printer():
@@ -125,6 +126,7 @@ class TweetDayFrame():
         Analyses a tweet and updates the statistics 
         of the corresponding day
         """
+        flag=False
         try:
             #extract date
             dat=date_extract(tweet)
@@ -136,22 +138,24 @@ class TweetDayFrame():
             #find the keys of tweet:
             kys=self.whichkeys(text)
 
+    
             #remove blank tweets and tweets that have lost their date:
             flag= (dat!=None) and (text!=None)
-
+        except:
+            return None
             #for a tweet satisfying the above
-            if flag:
-                #new date considered
-                if dat not in self.dates.keys():
-                    self.new_date(dat)
-                #update information
-                for key in kys:
+        if flag:
+            #new date considered
+            if dat not in self.dates.keys():
+                self.new_date(dat)
+            #update information
+            for key in kys:
+                try:
                     #sentiment of tweet
                     s=self.sent(text)
                     self.update_stats(dat,key,s)
-        except:
-            return None
-
+                except:
+                    pass
 
 
 if __name__=="__main__":
@@ -159,34 +163,27 @@ if __name__=="__main__":
     #create data structure
     A=TweetDayFrame()
 
-    # #calculate number of lines in file: 
-    # with gzip.open("tweets.json", 'rb') as f:
-    #     for i, l in enumerate(f):
-    #         if i%10000==0:
-    #             message="counted %i lines "%i
-    #             Printer(message)
-    # print("File contains %i lines"%i)
-    # no_lines=i
 
     # roughly 14million tweets 1mb > -approx 1000 tweets
     # multithreading programming
+    problem_list=[]
 
     it=0
     with gzip.open('tweets.json', 'rb') as f:
         for byte_tweet in f:
             it+=1
+            #tackle file corruption
+            if it==2216091:
+                break
             # message="Iteration %i/ %i"%(it,no_lines)
-            message="Iteration %i"%it
+            message="Iteration %i/2216091"%it
             Printer(message)
+            
             tweet=Bytes_to_Json([byte_tweet])[0]
             A.analyse_tweet(tweet)
-    
-    for key in A.dates.keys():
-        print(key)
-        print(A.dates[key])
-
 
     save_obj(A.dates, "dict" )
+    D=load_obj("dict")
 
 
 
